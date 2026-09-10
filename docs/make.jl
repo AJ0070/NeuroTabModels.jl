@@ -5,7 +5,7 @@ using NeuroTabModels
 
 pages = [
     "Quick start" => "quick-start.md",
-    "API" => "API.md",
+    "API" => ["Training" => "API.md", "Losses" => "losses.md"],
     "Embeddings" => ["Design" => "quarto/embeddings-design.md", "API" => "embeddings.md"],
     "Models" => [
         "Interface" => "models/models.md",
@@ -13,7 +13,10 @@ pages = [
         "ResNet" => "models/resnet.md",
         "NeuroTrees" => ["design" => "design.md", "API" => "models/neurotrees.md"],
         "TabM" => "models/tabM.md",
+        "ModernNCA" => "models/modernnca.md",
     ],
+    "Layers" => "models/layers.md",
+    "Padding and masks" => "models/padding-mask.md",
     "Tutorials" => [
         "Regression - Boston" => "tutorials/regression-boston.md",
         "Logistic - Titanic" => "tutorials/logistic-titanic.md",
