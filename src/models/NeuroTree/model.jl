@@ -1,6 +1,6 @@
 """
     NeuroTree(feats => outs; tree_type=:binary, actA=identity, scaler=true,
-              depth, trees, k, init_scale=0.1)
+              depth, trees, k, init_scale=1)
 
 Differentiable tree ensemble layer.
 Output dims: `[outs, k, batch_size]`.
@@ -15,7 +15,10 @@ Output dims: `[outs, k, batch_size]`.
 - `trees::Int`: Number of trees averaged in each of the `k` ensembles.
 - `k::Int`: Number of independent ensembles. Each ensemble produces one `outs`-wide
   vector; leaf values are **not** shared across `k`.
-- `init_scale::Float32`: Standard deviation for leaf weight initialization.
+- `init_scale::Float32`: Relative gain on the variance-preserving leaf init
+  (default `1`). Leaf values `p` are drawn `N(0, σ)` with std
+  `σ = init_scale √(trees · leaves)` so the tree output is O(1) at
+  initialization for any depth / `ntrees`.
 """
 struct NeuroTree{F} <: AbstractLuxLayer
     tree_type::Symbol
@@ -31,7 +34,7 @@ struct NeuroTree{F} <: AbstractLuxLayer
     init_scale::Float32
 end
 
-function NeuroTree(; feats, outs, tree_type=:binary, actA=identity, scaler=true, depth, trees, k=1, init_scale=0.1)
+function NeuroTree(; feats, outs, tree_type=:binary, actA=identity, scaler=true, depth, trees, k=1, init_scale=1)
     @assert tree_type ∈ [:binary, :oblivious]
     nodes = tree_type == :binary ? 2^depth - 1 : depth
     leaves = 2^depth
@@ -45,7 +48,7 @@ function NeuroTree(
     depth,
     trees,
     k=1,
-    init_scale=0.1,
+    init_scale=1,
 )
     @assert tree_type ∈ [:binary, :oblivious]
     nodes = tree_type == :binary ? 2^depth - 1 : depth
@@ -55,11 +58,12 @@ end
 
 # Define the Lux interface
 function LuxCore.initialparameters(rng::AbstractRNG, l::NeuroTree)
+    p_scaler = l.init_scale * sqrt(Float32(l.trees * l.leaves))
     return (
         w=Float32.((rand(rng, l.nodes * l.trees * l.k, l.feats) .- 0.5) ./ 4), # [NTK,F]
         b=zeros(Float32, l.nodes * l.trees * l.k), # [NTK]
         s=Float32.(fill(log(expm1(1)), l.nodes * l.trees * l.k)), # [NTK]
-        p=Float32.(randn(rng, l.outs, l.leaves, l.trees, l.k) .* l.init_scale), # [P,L,T,K]
+        p=randn(rng, Float32, l.outs, l.leaves, l.trees, l.k) .* p_scaler, # [P,L,T,K]
     )
 end
 

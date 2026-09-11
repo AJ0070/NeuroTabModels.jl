@@ -48,17 +48,17 @@ dtrain = df_tot[train_idx, :];
 deval = df_tot[eval_idx, :];
 dtest = df_tot[(end - 51630 + 1):end, :];
 
-# arch = NeuroTabModels.NeuroTreeConfig(;
-#     tree_type=:binary,
-#     actA=:identity,
-#     k=8,
-#     ntrees=16,
-#     depth=4,
-#     stack_size=1,
-#     hidden_size=16,
-#     init_scale=0.1,
-#     scaler=true,
-# )
+arch = NeuroTabModels.NeuroTreeConfig(;
+    tree_type=:binary,
+    actA=:identity,
+    k=8,
+    ntrees=16,
+    depth=4,
+    stack_size=1,
+    hidden_size=16,
+    # init_scale=0.1,
+    scaler=true,
+)
 
 # arch = NeuroTabModels.MOETreeConfig(;
 #     tree_type=:binary,

@@ -103,7 +103,7 @@ function init(
     data = Models.train_dataloader(
         config.arch, m, data, df; feature_names, target_name, loss, scalers, batchsize, dev, rng
     )
-    opt = OptimiserChain(NAdam(config.lr), WeightDecay(config.wd))
+    opt = OptimiserChain(Adam(config.lr), WeightDecay(config.wd))
     ts = Training.TrainState(m.chain, ps, st, opt)
 
     return m,
