@@ -49,8 +49,7 @@ Configuration for differentiable neuro-tree ensembles.
 - `hidden_size::Int`: Hidden dimension for stacked trees (default `1`).
 - `stack_size::Int`: Number of stacked tree layers (default `1`).
 - `scaler::Bool`: Apply softplus scaling on tree logits (default `true`).
-- `init_scale::Float32`: Relative gain on variance-preserving leaf init (default `1`).
-  Leaf std is `init_scale √(ntrees · 2^depth)` so outputs are O(1) at init.
+- `init_scale::Float32`: Leaf weight init scale (default `0.1`).
 - `MLE_tree_split::Bool`: Split output head for Gaussian MLE (default `false`).
 """
 struct NeuroTreeConfig <: Architecture
@@ -76,7 +75,7 @@ function NeuroTreeConfig(; kwargs...)
         :hidden_size => 1,
         :stack_size => 1,
         :scaler => true,
-        :init_scale => 1,
+        :init_scale => 0.1,
         :MLE_tree_split => false,
     )
 

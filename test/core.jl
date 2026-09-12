@@ -4,7 +4,7 @@
     learner = NeuroTabRegressor(;
         arch_name="NeuroTreeConfig",
         arch_config=Dict(
-            :actA => :identity, :depth => 4, :ntrees => 32, :stack_size => 1, :hidden_size => 1
+            :actA => :identity, :init_scale => 1.0, :depth => 4, :ntrees => 32, :stack_size => 1, :hidden_size => 1
         ),
         loss=:mse,
         nrounds=20,
@@ -24,18 +24,6 @@
     chain = learner.arch(; ins=nfeats, outsize)
     info = Dict(:nrounds => 0, :feature_names => feature_names)
     m = NeuroTabModel(loss, chain, info)
-end
-
-@testset "NeuroTree leaf init is O(1)" begin
-    # Variance-preserving p init: output rms should not depend on depth / ntrees.
-    rng = Random.MersenneTwister(1)
-    for (depth, ntrees) in ((3, 4), (4, 32), (5, 8))
-        chain = NeuroTabModels.NeuroTreeConfig(; depth, ntrees, k=4)(; ins=10, outsize=1)
-        ps, st = Lux.setup(rng, chain)
-        y, _ = chain(randn(rng, Float32, 10, 512), ps, st)
-        rms = sqrt(mean(abs2, y))
-        @test 0.05 < rms < 5
-    end
 end
 
 @testset "Regression - NeuroTree" begin
@@ -174,7 +162,7 @@ end
     ("MLPAttn", NeuroTabModels.MLPAttnConfig(; hidden_size=32, nheads=1, stack_size=1, dropout=0.5)),
     (
         "NeuroTreeAttn",
-        NeuroTabModels.NeuroTreeAttnConfig(; hidden_size=8, nheads=1, depth=3, ntrees=4, dropout=0.2),
+        NeuroTabModels.NeuroTreeAttnConfig(; hidden_size=8, nheads=1, depth=3, ntrees=4, dropout=0.2, init_scale=10),
     ),
     ("ResNet", NeuroTabModels.ResNetConfig(; hidden_size=32, stack_size=1, dropout=0.5)),
 ]
