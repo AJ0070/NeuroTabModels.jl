@@ -101,7 +101,7 @@ arch = NeuroTabModels.NeuroTreeConfig(;
 
 device = :gpu
 backend = :reactant
-loss = :mse # :mse :gaussian_mle :tweedie
+loss = :gaussian_mle # :mse :gaussian_mle :tweedie
 # metric = :mse # :mse :gaussian_mle :tweedie
 metric = :pearson
 
@@ -121,9 +121,9 @@ group_name = "grp" #"grp" # nothing
 eval_group_name = "grp"
 # @time m = NeuroTabModels.fit(learner, dtrain; deval, target_name, feature_names, print_every_n=5);
 @time m = NeuroTabModels.fit(learner, dtrain; deval, target_name, feature_names, group_name, print_every_n=5);
-# @time m = NeuroTabModels.fit(learner, dtrain; deval, target_name, feature_names, group_name, eval_group_name, print_every_n=5);
+# @time m = NeuroTabModels.fit(learner, dtrain; deval, target_name, feature_names, eval_group_name, print_every_n=5);
 # @time m = NeuroTabModels.fit(learner, dtrain; deval, target_name, feature_names, weight_name, group_name, print_every_n=5);
-# @time m = NeuroTabModels.fit(learner, dtrain; target_name, feature_names, group_name, print_every_n=5);
+# @time m = NeuroTabModels.fit(learner, dtrain; target_name, feature_names, eval_group_name, print_every_n=5);
 
 p_eval = m(deval; device=:cpu);
 p_eval = p_eval[:, 1]
