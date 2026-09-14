@@ -25,7 +25,7 @@ get_ad_backend(::Val{:reactant}) = get_ad_backend(Val(:enzyme))
 function get_ad_backend(::Val{b}) where {b}
     error(
         "Unsupported or unloaded `backend=:$b`. Supported: [:enzyme, :zygote, :reactant]. " *
-        "`:enzyme` and `:reactant` require `using Enzyme`, `:zygote` requires `using Zygote`.",
+            "`:enzyme` and `:reactant` require `using Enzyme`, `:zygote` requires `using Zygote`.",
     )
 end
 
@@ -103,7 +103,7 @@ function init(
     data = Models.train_dataloader(
         config.arch, m, data, df; feature_names, target_name, loss, scalers, batchsize, dev, rng
     )
-    opt = OptimiserChain(Adam(config.lr), WeightDecay(config.wd))
+    opt = OptimiserChain(NAdam(config.lr), WeightDecay(config.wd))
     ts = Training.TrainState(m.chain, ps, st, opt)
 
     return m,
