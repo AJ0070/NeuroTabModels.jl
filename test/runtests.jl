@@ -3,7 +3,7 @@ using NeuroTabModels
 using Lux
 using Tables
 using DataFrames
-using Statistics: mean
+using Statistics: mean, cor
 using CategoricalArrays
 using StatsBase: sample
 using Random

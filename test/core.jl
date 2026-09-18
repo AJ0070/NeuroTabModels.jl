@@ -536,18 +536,164 @@ end
     @test p_scaled[:, 2] ≈ p[:, 2] .* 2
 end
 
-@testset "Pearson loss" begin
+@testset "Pearson loss and metric" begin
+    L = NeuroTabModels.Losses
+    M = NeuroTabModels.Metrics
     idm = (x, ps, st) -> (x, st)
+    pred_fn = x -> x
+
     x = Float32[1.0 2.0 3.0 4.0]
     y = Float32[1.0 2.0 3.0 4.0]
-    val, _, _ = NeuroTabModels.Losses.Pearson()(idm, (;), (;), (x, y))
-    @test val ≈ -4.0f0
+    val, _, _ = L.Pearson()(idm, (;), (;), (x, y))
+    @test val ≈ -1.0f0
+    @test M.pearson(pred_fn, x, y) ≈ 4.0f0
+    @test M.is_maximise(M.pearson)
 
     x3 = reshape(x, 1, 1, 4)
-    val3, _, _ = NeuroTabModels.Losses.Pearson()(idm, (;), (;), (x3, y))
-    @test val3 ≈ -4.0f0
+    val3, _, _ = L.Pearson()(idm, (;), (;), (x3, y))
+    @test val3 ≈ -1.0f0
 
     w = Float32[1, 1, 1, 1]
-    valw, _, _ = NeuroTabModels.Losses.Pearson()(idm, (;), (;), (x, y, w))
-    @test valw ≈ -4.0f0
+    valw, _, _ = L.Pearson()(idm, (;), (;), (x, y, w))
+    @test valw ≈ -1.0f0
+    @test M.pearson(pred_fn, x, y, w) ≈ 4.0f0
+
+    # Loss is -cor (mean-scale, like MSE). Metric is cor * n so get_metric can average batches.
+    x_imp = Float32[1.0 2.0 3.0 4.0]
+    y_imp = Float32[1.0 3.0 2.0 8.0]
+    c = cor(vec(Float64.(x_imp)), vec(Float64.(y_imp)))
+    val_imp, _, _ = L.Pearson()(idm, (;), (;), (x_imp, y_imp))
+    @test val_imp ≈ -c rtol = 1e-5
+    @test M.pearson(pred_fn, x_imp, y_imp) ≈ c * 4 rtol = 1e-5
+    @test M.pearson(pred_fn, x_imp, -y_imp) ≈ -c * 4 rtol = 1e-5
+
+    # First output channel only; ensemble axis is averaged.
+    pred2 = cat(x, x; dims=1)  # (2, 4): extra channel must be ignored
+    @test M.pearson(_ -> pred2, x, y) ≈ 4.0f0
+    ens = reshape(Float32[1 2 3 4; 1 2 3 4], 1, 2, 4)
+    val_ens, _, _ = L.Pearson()(idm, (;), (;), (ens, y))
+    @test val_ens ≈ -1.0f0
+
+    offset = Float32[1, 1, 1, 1]
+    # offset shifts p by +1; correlation with y=x is unchanged
+    @test M.pearson(pred_fn, x, y, w, offset) ≈ 4.0f0
+
+    g = Zygote.gradient(xx -> first(L.Pearson()(idm, (;), (;), (xx, y_imp))), x_imp)
+    @test g[1] isa AbstractArray
+    @test all(isfinite, g[1])
+end
+
+@testset "Pearson grouped sampling" begin
+    L = NeuroTabModels.Losses
+    M = NeuroTabModels.Metrics
+    idm = (x, ps, st) -> (reshape(x[1, :], 1, 1, size(x, 2)), st)
+    pred_fn = x -> reshape(x[1, :], 1, size(x, 2))
+
+    # y = x + 1 so (0, 0) padding is not on the regression line: unweighted
+    # Pearson on the padded buffer would be wrong, the weight mask must drop it.
+    p_pad = Float32[1.0 2.0 3.0 0.0]
+    y_pad = Float32[2.0 3.0 4.0 0.0]
+    w_pad = Float32[1, 1, 1, 0]
+    c_real = cor(Float64[1, 2, 3], Float64[2, 3, 4])
+    val_mask, _, _ = L.Pearson()(idm, (;), (;), (p_pad, y_pad, w_pad))
+    val_full, _, _ = L.Pearson()(idm, (;), (;), (p_pad, y_pad))
+    @test val_mask ≈ -c_real rtol = 1e-5
+    @test M.pearson(pred_fn, p_pad, y_pad, w_pad) ≈ c_real * 3 rtol = 1e-5
+    @test abs(val_full - val_mask) > 0.1
+    g = Zygote.gradient(xx -> first(L.Pearson()(idm, (;), (;), (xx, y_pad, w_pad))), p_pad)
+    @test g[1][4] ≈ 0 atol = 1e-6
+
+    # Unequal groups: loader pads to max group size; eval is size-weighted mean of per-group Pearson.
+    df = DataFrame(
+        x1=Float32[1, 2, 3, 10, 20, 30, 40, 5, 6, 7, 8],
+        y=Float32[2, 3, 4, 11, 21, 31, 41, 6, 8, 7, 20],
+        grp=[1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3],
+    )
+    dfg = groupby(df, :grp; sort=true)
+    loader = NeuroTabModels.Data.get_df_loader_train(
+        dfg; feature_names=[:x1], target_name=:y, batchsize=0, shuffle=false
+    )
+
+    group_cors = Float64[]
+    group_ns = Float64[]
+    metric_acc = 0.0
+    ws = 0.0
+    for (x, yb, w) in loader
+        mask = vec(w) .> 0
+        @test size(x, 2) == 4  # padded to max group size
+        @test count(mask) == sum(w)
+        p_real = Float64.(x[1, mask])
+        y_real = Float64.(vec(yb)[mask])
+        n = sum(mask)
+        c = cor(p_real, y_real)
+        push!(group_cors, c)
+        push!(group_ns, n)
+        val, _, _ = L.Pearson()(idm, (;), (;), (x, yb, w))
+        @test val ≈ -c rtol = 1e-5
+        mval = M.pearson(pred_fn, x, yb, w)
+        @test mval ≈ c * n rtol = 1e-5
+        metric_acc += mval
+        ws += sum(w)
+    end
+    grouped_metric = metric_acc / ws
+    @test group_ns == [3.0, 4.0, 4.0]
+    @test grouped_metric ≈ sum(group_cors .* group_ns) / sum(group_ns) rtol = 1e-5
+    global_cor = cor(Float64.(df.x1), Float64.(df.y))
+    @test abs(grouped_metric - global_cor) > 1e-3
+    @test -1 <= grouped_metric <= 1
+end
+
+@testset "Pearson fit with group_name / eval_group_name" begin
+    Random.seed!(123)
+    function _pearson_df(n_groups, n_per; shift=0)
+        nobs = n_groups * n_per
+        X = randn(Float32, nobs, 4)
+        y = X[:, 1] .+ 0.15f0 .* randn(Float32, nobs)
+        df = DataFrame(X, :auto)
+        df[!, :y] = y
+        df[!, :grp] = repeat((1:n_groups) .+ shift, inner=n_per)
+        return df
+    end
+    dtrain = _pearson_df(8, 16)
+    deval = _pearson_df(4, 12; shift=100)
+    target_name = "y"
+    feature_names = setdiff(names(dtrain), [target_name, "grp"])
+
+    arch = NeuroTabModels.MLPConfig(; hidden_size=16, stack_size=1, dropout=0.0)
+    learner = NeuroTabRegressor(
+        arch;
+        loss=:pearson,
+        metric=:pearson,
+        nrounds=8,
+        early_stopping_rounds=8,
+        lr=3e-2,
+        batchsize=32,
+        backend=:zygote,
+        device=:cpu,
+    )
+
+    m_grp = NeuroTabModels.fit(
+        learner, dtrain; target_name, feature_names, deval, group_name="grp", print_every_n=8
+    )
+    metrics_grp = m_grp.info[:logger][:metrics][:metric]
+    @test m_grp.info[:group_name] === :grp
+    @test m_grp.info[:eval_group_name] === :grp
+    @test all(isfinite, metrics_grp)
+    @test all(-1.0001 .<= metrics_grp .<= 1.0001)
+    @test last(metrics_grp) > first(metrics_grp)
+
+    p = m_grp(deval)
+    @test size(p, 1) == nrow(deval)
+    @test !any(isnan, p)
+
+    # Ungrouped training, grouped eval metrics (eval_group_name independent of group_name).
+    m_eval = NeuroTabModels.fit(
+        learner, dtrain; target_name, feature_names, deval, eval_group_name="grp", print_every_n=8
+    )
+    metrics_eval = m_eval.info[:logger][:metrics][:metric]
+    @test isnothing(m_eval.info[:group_name])
+    @test m_eval.info[:eval_group_name] === :grp
+    @test all(isfinite, metrics_eval)
+    @test all(-1.0001 .<= metrics_eval .<= 1.0001)
+    @test last(metrics_eval) > first(metrics_eval)
 end

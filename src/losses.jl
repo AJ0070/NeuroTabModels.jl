@@ -124,7 +124,6 @@ end
 
 # First output channel (`μ` when the head is 2-wide), mean over the ensemble axis.
 _corr_from_pred(pred) = vec(mean(view(pred, 1, :, :); dims=1))
-_ones_like(p) = fill!(similar(p), one(eltype(p)))
 
 function _pearson_value(p, y, w)
     p = vec(p)
@@ -136,12 +135,12 @@ function _pearson_value(p, y, w)
     y_mean = (w' * y) / sw
     y_var = (w' * (y .^ 2)) / sw - y_mean^2
     py_mean = (w' * (p .* y)) / sw
-    return (py_mean - p_mean * y_mean) / (sqrt(p_var) * sqrt(y_var)) * sw
+    return (py_mean - p_mean * y_mean) / (sqrt(p_var) * sqrt(y_var))
 end
 
 function _aggregate(::Pearson, pred, y, ::Nothing)
     p = _corr_from_pred(pred)
-    return -_pearson_value(p, y, _ones_like(p))
+    return -_pearson_value(p, y, one.(p))
 end
 function _aggregate(::Pearson, pred, y, w)
     p = _corr_from_pred(pred)
