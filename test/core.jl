@@ -36,7 +36,7 @@ end
     feature_names = setdiff(names(df), [target_name])
 
     train_ratio = 0.8
-    train_indices = randperm(nrow(df))[1:Int(train_ratio * nrow(df))]
+    train_indices = randperm(nrow(df))[1:Int(train_ratio*nrow(df))]
 
     dtrain = df[train_indices, :]
     deval = df[setdiff(1:nrow(df), train_indices), :]
@@ -72,7 +72,7 @@ end
     feature_names = setdiff(names(df), [target_name])
 
     train_ratio = 0.8
-    train_indices = randperm(nrow(df))[1:Int(train_ratio * nrow(df))]
+    train_indices = randperm(nrow(df))[1:Int(train_ratio*nrow(df))]
 
     dtrain = df[train_indices, :]
     deval = df[setdiff(1:nrow(df), train_indices), :]
@@ -102,7 +102,7 @@ end
     transform!(df, feature_names .=> (x -> (x .- mean(x)) ./ std(x)); renamecols=false)
 
     train_ratio = 0.8
-    train_indices = randperm(nrow(df))[1:Int(train_ratio * nrow(df))]
+    train_indices = randperm(nrow(df))[1:Int(train_ratio*nrow(df))]
 
     dtrain = df[train_indices, :]
     deval = df[setdiff(1:nrow(df), train_indices), :]
@@ -134,7 +134,7 @@ end
     transform!(df, feature_names .=> (x -> (x .- mean(x)) ./ std(x)); renamecols=false)
 
     train_ratio = 0.8
-    train_indices = randperm(nrow(df))[1:Int(train_ratio * nrow(df))]
+    train_indices = randperm(nrow(df))[1:Int(train_ratio*nrow(df))]
 
     dtrain = df[train_indices, :]
     deval = df[setdiff(1:nrow(df), train_indices), :]
@@ -149,7 +149,7 @@ end
         lr=1e-2,
     )
 
-    m = NeuroTabModels.fit(learner, dtrain; deval, target_name, feature_names, print_every_n=5);
+    m = NeuroTabModels.fit(learner, dtrain; deval, target_name, feature_names, print_every_n=5)
 
     ptrain = [argmax(x) for x in eachrow(m(dtrain))]
     peval = [argmax(x) for x in eachrow(m(deval))]
@@ -175,7 +175,7 @@ end
     transform!(df, feature_names .=> (x -> (x .- mean(x)) ./ std(x)); renamecols=false)
 
     train_ratio = 0.8
-    train_indices = randperm(nrow(df))[1:Int(train_ratio * nrow(df))]
+    train_indices = randperm(nrow(df))[1:Int(train_ratio*nrow(df))]
 
     dtrain = df[train_indices, :]
     deval = df[setdiff(1:nrow(df), train_indices), :]
@@ -189,7 +189,7 @@ end
         lr=3e-3,
     )
 
-    m = NeuroTabModels.fit(learner, dtrain; deval, target_name, feature_names, print_every_n=5);
+    m = NeuroTabModels.fit(learner, dtrain; deval, target_name, feature_names, print_every_n=5)
 
     ptrain = [argmax(x) for x in eachrow(m(dtrain))]
     peval = [argmax(x) for x in eachrow(m(deval))]
@@ -209,7 +209,7 @@ end
     feature_names = setdiff(names(df), [target_name, "grp"])
 
     train_ratio = 0.8
-    train_indices = randperm(nrow(df))[1:Int(train_ratio * nrow(df))]
+    train_indices = randperm(nrow(df))[1:Int(train_ratio*nrow(df))]
     dtrain = df[train_indices, :]
     deval = df[setdiff(1:nrow(df), train_indices), :]
     sort!(dtrain, :grp)
@@ -333,7 +333,7 @@ end
     feature_names = setdiff(names(df), [target_name, "grp"])
 
     train_ratio = 0.8
-    train_indices = randperm(nrow(df))[1:Int(train_ratio * nrow(df))]
+    train_indices = randperm(nrow(df))[1:Int(train_ratio*nrow(df))]
     dtrain = df[train_indices, :]
     deval = df[setdiff(1:nrow(df), train_indices), :]
     sort!(dtrain, :grp)
@@ -452,7 +452,7 @@ end
 end
 
 @testset "Backend/device - Regression ($backend, $device)" for (backend, device) in
-                                                               [(:enzyme, :cpu), (:zygote, :cpu), (:reactant, :cpu)]
+    [(:enzyme, :cpu), (:zygote, :cpu), (:reactant, :cpu)]
     Random.seed!(123)
     X = randn(Float32, 1000, 10)
     y = X[:, 1] .+ 0.5f0 .* X[:, 2] .+ 0.1f0 .* randn(Float32, 1000)
@@ -462,7 +462,7 @@ end
     feature_names = setdiff(names(df), [target_name])
 
     train_ratio = 0.8
-    train_indices = randperm(nrow(df))[1:Int(train_ratio * nrow(df))]
+    train_indices = randperm(nrow(df))[1:Int(train_ratio*nrow(df))]
 
     dtrain = df[train_indices, :]
     deval = df[setdiff(1:nrow(df), train_indices), :]
@@ -489,7 +489,7 @@ end
 end
 
 @testset "Backend/device - Classification ($backend, $device)" for (backend, device) in
-                                                                   [(:enzyme, :cpu), (:zygote, :cpu)]
+    [(:enzyme, :cpu), (:zygote, :cpu)]
     Random.seed!(123)
     X, y = @load_crabs
     df = DataFrame(X)
@@ -499,7 +499,7 @@ end
     transform!(df, feature_names .=> (x -> (x .- mean(x)) ./ std(x)); renamecols=false)
 
     train_ratio = 0.8
-    train_indices = randperm(nrow(df))[1:Int(train_ratio * nrow(df))]
+    train_indices = randperm(nrow(df))[1:Int(train_ratio*nrow(df))]
 
     dtrain = df[train_indices, :]
     deval = df[setdiff(1:nrow(df), train_indices), :]
@@ -589,15 +589,17 @@ end
     idm = (x, ps, st) -> (reshape(x[1, :], 1, 1, size(x, 2)), st)
     pred_fn = x -> reshape(x[1, :], 1, size(x, 2))
 
-    # y = x + 1 so (0, 0) padding is not on the regression line: unweighted
-    # Pearson on the padded buffer would be wrong, the weight mask must drop it.
+    # Zero-weight pad must be dropped. A (0, 0) pad is nearly collinear with
+    # y = x + 1, so use an off-line pad so unweighted Pearson is actually wrong.
     p_pad = Float32[1.0 2.0 3.0 0.0]
-    y_pad = Float32[2.0 3.0 4.0 0.0]
+    y_pad = Float32[2.0 3.0 4.0 10.0]
     w_pad = Float32[1, 1, 1, 0]
     c_real = cor(Float64[1, 2, 3], Float64[2, 3, 4])
+    c_full = cor(vec(Float64.(p_pad)), vec(Float64.(y_pad)))
     val_mask, _, _ = L.Pearson()(idm, (;), (;), (p_pad, y_pad, w_pad))
     val_full, _, _ = L.Pearson()(idm, (;), (;), (p_pad, y_pad))
     @test val_mask ≈ -c_real rtol = 1e-5
+    @test val_full ≈ -c_full rtol = 1e-5
     @test M.pearson(pred_fn, p_pad, y_pad, w_pad) ≈ c_real * 3 rtol = 1e-5
     @test abs(val_full - val_mask) > 0.1
     g = Zygote.gradient(xx -> first(L.Pearson()(idm, (;), (;), (xx, y_pad, w_pad))), p_pad)
