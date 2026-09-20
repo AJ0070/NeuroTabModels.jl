@@ -93,17 +93,17 @@ arch = NeuroTabModels.NeuroTreeConfig(;
 #     attn_dropout=0.1,
 # )
 
-arch = NeuroTabModels.NeuroTreeAttnConfig(;
-    tree_type=:binary,
-    depth=4,
-    ntrees=8,
-    stack_size=1,
-    hidden_size=16,
-    nheads=1,
-    n_attn_layers=1,
-    dropout=0.2,
-    attn_dropout=0.1,
-)
+# arch = NeuroTabModels.NeuroTreeAttnConfig(;
+#     tree_type=:binary,
+#     depth=4,
+#     ntrees=8,
+#     stack_size=1,
+#     hidden_size=16,
+#     nheads=1,
+#     n_attn_layers=1,
+#     dropout=0.2,
+#     attn_dropout=0.1,
+# )
 
 # arch = NeuroTabModels.ResNetConfig(; stack_size=2, hidden_size=64, act=:relu, dropout=0.2)
 

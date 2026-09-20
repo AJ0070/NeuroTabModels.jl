@@ -36,10 +36,10 @@ dtrain = df[train_indices, :]
 deval = df[setdiff(1:nrow(df), train_indices), :]
 ```
 
-## Training
+## Fitting
 
 Now we are ready to train our model. We first define a model configuration using the [`NeuroTabClassifier`](@ref) model constructor. 
-Then, we use [`NeuroTabModels.fit`](@ref) to train a boosted tree model. We pass the optional `deval` argument to enable the usage of early stopping. 
+Then, we use [`fit`](@ref NeuroTabModels.Fit.fit) to train a boosted tree model. We pass the optional `deval` argument to enable the usage of early stopping. 
 
 ```julia
 config = NeuroTabClassifier(

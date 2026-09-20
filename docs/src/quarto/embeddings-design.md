@@ -1,4 +1,4 @@
-# Embeddings
+# Embeddings design
 Evovest
 
 - [Setup](#setup)

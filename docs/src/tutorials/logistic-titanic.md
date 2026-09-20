@@ -57,10 +57,10 @@ target_name = "Survived"
 feature_names = setdiff(names(df), [target_name])
 ```
 
-## Training
+## Fitting
 
 Now we are ready to train our model. We first define a model configuration using the [`NeuroTabRegressor`](@ref) model constructor. 
-Then, we use [`NeuroTabModels.fit`](@ref) to train a boosted tree model. We pass the optional `deval` argument to enable the usage of early stopping. 
+Then, we use [`fit`](@ref NeuroTabModels.Fit.fit) to train a boosted tree model. We pass the optional `deval` argument to enable the usage of early stopping. 
 
 ```julia
 config = NeuroTabRegressor(
