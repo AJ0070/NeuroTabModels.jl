@@ -159,12 +159,12 @@ end
 
 @testset "Classification - $arch_name" for (arch_name, arch) in [
     ("MLP", NeuroTabModels.MLPConfig(; hidden_size=32, stack_size=1, dropout=0.5)),
-    ("MLPAttn", NeuroTabModels.MLPAttnConfig(; hidden_size=32, nheads=1, stack_size=1, dropout=0.5)),
+    ("MLPAttn", NeuroTabModels.MLPAttnConfig(; hidden_size=64, nheads=1, stack_size=1, dropout=0.2)),
     (
         "NeuroTreeAttn",
         NeuroTabModels.NeuroTreeAttnConfig(; hidden_size=8, nheads=1, depth=3, ntrees=4, dropout=0.2, init_scale=10),
     ),
-    ("ResNet", NeuroTabModels.ResNetConfig(; hidden_size=32, stack_size=1, dropout=0.5)),
+    ("ResNet", NeuroTabModels.ResNetConfig(; hidden_size=32, stack_size=1, dropout=0.2)),
 ]
     Random.seed!(123)
     X, y = @load_crabs
