@@ -552,7 +552,7 @@ end
 end
 
 @testset "GaussianMLE inverse link and scaling" begin
-    pred = Float32[0.2 0.3; 0.0 1.0]
+    pred = Float32[0.2 0.0; 0.3 1.0]
     p = NeuroTabModels.Infer._inverse_link(NeuroTabModels.Losses.GaussianMLE(), pred)
     @test size(p) == (2, 2)
     @test p[:, 1] ≈ Float32[0.2, 0.3]
