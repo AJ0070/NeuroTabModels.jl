@@ -8,7 +8,7 @@
 
 ## Configuring a model
 
-A model configuration is defined with the [NeuroTabRegressor](@ref) constructor:
+A model configuration is defined with the [`NeuroTabRegressor`](@ref) constructor:
 
 ```julia
 using NeuroTabModels, DataFrames
@@ -31,9 +31,9 @@ config = NeuroTabRegressor(;
 )
 ```
 
-## Training
+## Fitting
 
-Building and training a model according to the above `config` is done with [NeuroTabModels.fit](@ref).
+Building and training a model according to the above `config` is done with [`fit`](@ref NeuroTabModels.Fit.fit).
 See the docs for additional features, notably early stopping support through the tracking of an evaluation metric.
 
 ```julia
