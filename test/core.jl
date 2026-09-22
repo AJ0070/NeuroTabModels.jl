@@ -253,6 +253,33 @@ end
     @test maximum(abs.(p .- p_row)) < 1e-5
 end
 
+@testset "Regression - seed makes a fit reproducible" begin
+    Random.seed!(123)
+    nobs = 200
+    X = randn(Float32, nobs, 4)
+    y = X[:, 1] .+ 0.5f0 .* X[:, 2] .+ 0.1f0 .* randn(Float32, nobs)
+    df = DataFrame(X, :auto)
+    df[!, :y] = y
+    df[!, :grp] = repeat(1:10, inner=20)
+    target_name = "y"
+    feature_names = setdiff(names(df), [target_name, "grp"])
+
+    arch = NeuroTabModels.MLPConfig(; hidden_size=16)
+    function fit_predict(seed, global_seed; group_name=nothing)
+        # a different global stream must not change the fit, only `seed` may
+        Random.seed!(global_seed)
+        learner = NeuroTabRegressor(arch; loss=:mse, nrounds=5, lr=1e-2, batchsize=32, seed)
+        m = NeuroTabModels.fit(learner, df; target_name, feature_names, group_name)
+        return m(df)
+    end
+
+    for group_name in (nothing, "grp")
+        p = fit_predict(123, 1; group_name)
+        @test p == fit_predict(123, 2; group_name)
+        @test p != fit_predict(124, 1; group_name)
+    end
+end
+
 @testset "MaskedBatchNorm" begin
     rng = Random.Xoshiro(123)
     l = NeuroTabModels.MaskedBatchNorm(4)

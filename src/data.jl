@@ -4,6 +4,7 @@ export get_df_loader_train, get_df_loader_infer
 
 import Base: length, getindex
 import MLUtils: DataLoader
+import Random: default_rng
 
 using DataFrames
 using CategoricalArrays
@@ -56,6 +57,7 @@ function get_df_loader_train(
     batchsize,
     scalers=nothing,
     shuffle=true,
+    rng=default_rng(),
 )
     feature_names = Symbol.(feature_names)
     x = Matrix{Float32}(Matrix{Float32}(select(df, feature_names))')
@@ -84,7 +86,7 @@ function get_df_loader_train(
 
     container = ContainerTrain(x, y, w, offset)
     batchsize = min(batchsize, length(container))
-    dtrain = DataLoader(container; shuffle, batchsize, partial=false, parallel=false)
+    dtrain = DataLoader(container; shuffle, batchsize, partial=false, parallel=false, rng)
     return dtrain
 end
 
@@ -105,6 +107,7 @@ function get_df_loader_train(
     batchsize=0,
     scalers=nothing,
     shuffle=true,
+    rng=default_rng(),
 )
     n = length(dfg)
     nfeats = length(feature_names)
@@ -129,7 +132,7 @@ function get_df_loader_train(
     offset = nothing
 
     container = ContainerTrain(x, y, w, offset)
-    dtrain = DataLoader(container; shuffle, batchsize=0, partial=false, parallel=false)
+    dtrain = DataLoader(container; shuffle, batchsize=0, partial=false, parallel=false, rng)
     return dtrain
 end
 

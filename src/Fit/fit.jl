@@ -67,8 +67,11 @@ function init(
         scalers = (mu=mean(df[!, target_name]), sigma=std(df[!, target_name]))
     end
 
+    # one rng drives both parameter init and batch order, so `seed` makes a fit reproducible;
+    # the loader only draws from it once iteration starts, after `Lux.setup` below
+    rng = Xoshiro(config.seed)
     dfg = isnothing(group_name) ? df : groupby(df, group_name; sort=true)
-    data = get_df_loader_train(dfg; feature_names, target_name, weight_name, offset_name, scalers, batchsize) |> dev
+    data = get_df_loader_train(dfg; feature_names, target_name, weight_name, offset_name, scalers, batchsize, rng) |> dev
 
     # Build chain: optional embeddings + architecture backbone
     embed_config = config.embedding_config
@@ -98,7 +101,6 @@ function init(
     )
     m = NeuroTabModel(loss, chain, info)
 
-    rng = Xoshiro(config.seed)
     ps, st = Lux.setup(rng, m.chain) |> dev
     data = Models.train_dataloader(
         config.arch, m, data, df; feature_names, target_name, loss, scalers, batchsize, dev, rng
