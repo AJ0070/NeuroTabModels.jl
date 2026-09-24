@@ -28,6 +28,8 @@ Dropped from the embeddings export list: `NLinear`, `Periodic`, `PiecewiseLinear
 
 **`TabMConfig`.** `scaling_init` is no longer a config field (unknown kwargs are ignored with a warning).
 
+**Raw predictions.** With `proj=false`, `MLogLoss` and `GaussianMLE` return `(nobs, K)`, the same layout as `proj=true`, instead of `(K, nobs)`.
+
 ## Added
 
 - Architectures: `ModernNCAConfig`, `MLPAttnConfig`, `NeuroTreeAttnConfig`.
