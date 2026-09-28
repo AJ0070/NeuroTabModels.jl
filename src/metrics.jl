@@ -5,6 +5,7 @@ export metric_dict, is_maximise, get_metric
 import Statistics: mean, std
 import StatsBase: tiedrank, denserank
 import NNlib: logsigmoid, logsoftmax, softmax, relu, hardsigmoid
+import ..Losses: _pearson_value
 using Lux
 
 """
@@ -163,40 +164,21 @@ end
     pearson(m, x, y, w, offset; agg=mean)
 
 Uses the first output (`μ` when `gaussian_mle` returns `size(p, 1) == 2`).
+A flat group (constant predictions or target, or a single row) scores 0 and keeps its weight.
 """
 _corr_pred(p) = vec(view(p, 1, :))
 
 function pearson(m, x, y; agg=mean)
     p = _corr_pred(m(x))
-    y = vec(y)
-    p_mean = mean(p)
-    p_var = mean(p .^ 2) - p_mean^2
-    y_mean = mean(y)
-    y_var = mean(y .^ 2) - y_mean^2
-    py_mean = mean(p .* y)
-    return (py_mean - p_mean * y_mean) / (sqrt(p_var) * sqrt(y_var)) * length(y)
+    return _pearson_value(p, y, one.(p)) * length(y)
 end
 function pearson(m, x, y, w; agg=mean)
     p = _corr_pred(m(x))
-    y = vec(y)
-    w = vec(w)
-    p_mean = w' * p / sum(w)
-    p_var = w' * (p .^ 2) / sum(w) - p_mean^2
-    y_mean = w' * y / sum(w)
-    y_var = w' * (y .^ 2) / sum(w) - y_mean^2
-    py_mean = w' * (p .* y) / sum(w)
-    return (py_mean - p_mean * y_mean) / (sqrt(p_var) * sqrt(y_var)) * sum(w)
+    return _pearson_value(p, y, w) * sum(w)
 end
 function pearson(m, x, y, w, offset; agg=mean)
     p = _corr_pred(m(x) .+ offset)
-    y = vec(y)
-    w = vec(w)
-    p_mean = w' * p / sum(w)
-    p_var = w' * (p .^ 2) / sum(w) - p_mean^2
-    y_mean = w' * y / sum(w)
-    y_var = w' * (y .^ 2) / sum(w) - y_mean^2
-    py_mean = w' * (p .* y) / sum(w)
-    return (py_mean - p_mean * y_mean) / (sqrt(p_var) * sqrt(y_var)) * sum(w)
+    return _pearson_value(p, y, w) * sum(w)
 end
 
 """

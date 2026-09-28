@@ -130,12 +130,15 @@ function _pearson_value(p, y, w)
     y = vec(y)
     w = vec(w)
     sw = sum(w)
-    p_mean = (w' * p) / sw
-    p_var = (w' * (p .^ 2)) / sw - p_mean^2
-    y_mean = (w' * y) / sw
-    y_var = (w' * (y .^ 2)) / sw - y_mean^2
-    py_mean = (w' * (p .* y)) / sw
-    return (py_mean - p_mean * y_mean) / (sqrt(p_var) * sqrt(y_var))
+    dp = p .- (w' * p) / sw
+    dy = y .- (w' * y) / sw
+    cov = (w' * (dp .* dy)) / sw
+    p_var = (w' * (dp .^ 2)) / sw
+    y_var = (w' * (dy .^ 2)) / sw
+    # A flat group (constant predictions or target, or a single row) scores 0. The floor keeps
+    # sqrt off 0, so the gradient there stays finite and points along the target.
+    ϵ = eltype(p)(1e-14)
+    return cov / (sqrt(max(p_var, ϵ)) * sqrt(max(y_var, ϵ)))
 end
 
 function _aggregate(::Pearson, pred, y, ::Nothing)
