@@ -146,7 +146,7 @@ Training function of NeuroTabModels' internal API.
 - `weight_name=nothing`: Optional. A `Symbol` or `String` indicating the sample weights column.
   With `group_name`, weights must be positive and finite, and they act within each group: each step
   is normalised by its group's own weight sum.
-- `offset_name=nothing`: Optional. A `Symbol` or `String` indicating the offset column. Not supported with `group_name`.
+- `offset_name=nothing`: Optional. A `Symbol` or `String` indicating the offset column.
 - `group_name=nothing`: Optional. Column used to group training data in the dataloader.
 - `eval_group_name=group_name`: Optional. Column used to group evaluation data when computing metrics.
   Defaults to `group_name`. Set independently to compute groupby eval metrics while training on the
