@@ -72,12 +72,19 @@ function get_df_loader_train(
     end
 
     y = reshape(y, 1, :)
-    w = isnothing(weight_name) ? nothing : Float32.(df[!, weight_name])
+    # batches carrying an offset are laid out as (x, y, w, offset), so unit weights stand in when none are given
+    w = if !isnothing(weight_name)
+        Float32.(df[!, weight_name])
+    elseif !isnothing(offset_name)
+        ones(Float32, size(y, 2))
+    else
+        nothing
+    end
 
     offset = if isnothing(offset_name)
         nothing
     else
-        if isa(offset_name, String)
+        if offset_name isa Union{String,Symbol}
             Float32.(df[!, offset_name])
         else
             Matrix{Float32}(Matrix{Float32}(df[!, offset_name])')
@@ -124,10 +131,14 @@ function get_df_loader_train(
     for i in 1:n
         df = dfg[i]
         x[i][:, 1:nrow(df)] .= Matrix(df[:, feature_names])'
+        target = df[!, target_name]
+        if eltype(target) <: CategoricalValue
+            target = CategoricalArrays.levelcode.(target)
+        end
         if isnothing(scalers)
-            y[i][1, 1, 1:nrow(df)] .= df[:, target_name]
+            y[i][1, 1, 1:nrow(df)] .= target
         else
-            y[i][1, 1, 1:nrow(df)] .= (df[:, target_name] .- scalers[:mu]) ./ scalers[:sigma]
+            y[i][1, 1, 1:nrow(df)] .= (target .- scalers[:mu]) ./ scalers[:sigma]
         end
         if isnothing(weight_name)
             w[i][1, 1, 1:nrow(df)] .= 1.0
