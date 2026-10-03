@@ -172,7 +172,7 @@ end
     ("MLPAttn", NeuroTabModels.MLPAttnConfig(; hidden_size=64, nheads=1, stack_size=1, dropout=0.2)),
     (
         "NeuroTreeAttn",
-        NeuroTabModels.NeuroTreeAttnConfig(; hidden_size=8, nheads=1, depth=3, ntrees=4, dropout=0.2, init_scale=10),
+        NeuroTabModels.NeuroTreeAttnConfig(; hidden_size=8, nheads=1, depth=3, ntrees=4, dropout=0.2),
     ),
     ("ResNet", NeuroTabModels.ResNetConfig(; hidden_size=32, stack_size=1, dropout=0.2)),
 ]
@@ -735,6 +735,75 @@ end
     global_cor = cor(Float64.(df.x1), Float64.(df.y))
     @test abs(grouped_metric - global_cor) > 1e-3
     @test -1 <= grouped_metric <= 1
+end
+
+@testset "Pearson on flat groups" begin
+    L = NeuroTabModels.Losses
+    M = NeuroTabModels.Metrics
+    idm = (x, ps, st) -> (x, st)
+    pred_fn = x -> x
+    y = Float32[1.0 3.0 2.0 8.0]
+    w = Float32[1, 1, 1, 1]
+
+    # A constant prediction scores 0 instead of 0/0, and its gradient still points along y.
+    for c in (0.0f0, 0.3f0)
+        p = fill(c, 1, 4)
+        val, _, _ = L.Pearson()(idm, (;), (;), (p, y, w))
+        @test val ≈ 0 atol = 1e-5
+        @test M.pearson(pred_fn, p, y, w) ≈ 0 atol = 1e-5
+        g = Zygote.gradient(pp -> first(L.Pearson()(idm, (;), (;), (pp, y, w))), p)[1]
+        @test all(isfinite, g)
+        @test cor(vec(-g), vec(y)) > 0.99
+    end
+
+    # A flat target or a single row scores 0 as well.
+    p = Float32[1.0 2.0 3.0 4.0]
+    yflat = fill(2.0f0, 1, 4)
+    val, _, _ = L.Pearson()(idm, (;), (;), (p, yflat, w))
+    @test val ≈ 0 atol = 1e-5
+    @test M.pearson(pred_fn, p, yflat, w) ≈ 0 atol = 1e-5
+    g = Zygote.gradient(pp -> first(L.Pearson()(idm, (;), (;), (pp, yflat, w))), p)[1]
+    @test all(isfinite, g)
+    @test M.pearson(pred_fn, Float32[0.5;;], Float32[2.0;;], Float32[1]) ≈ 0 atol = 1e-5
+end
+
+@testset "Pearson from a flat start" begin
+    # Zero leaves make every prediction equal at iteration 0. A NaN first eval would become the
+    # best metric, and early stopping would then fire with best_iter 0.
+    Random.seed!(123)
+    df = DataFrame(randn(Float32, 40 * 16, 4), :auto)
+    df[!, :y] = df.x1 .+ 0.15f0 .* randn(Float32, nrow(df))
+    df[!, :grp] = repeat(1:40, inner=16)
+    dtrain = df[df.grp.<=32, :]
+    deval = df[df.grp.>32, :]
+    feature_names = ["x1", "x2", "x3", "x4"]
+
+    arch = NeuroTabModels.NeuroTreeConfig(; depth=3, ntrees=8, stack_size=1, init_scale=0.0)
+    for (loss, backend) in ((:mse, :zygote), (:pearson, :zygote), (:pearson, :enzyme), (:pearson, :reactant))
+        learner = NeuroTabRegressor(
+            arch; loss, metric=:pearson, nrounds=12, early_stopping_rounds=4, lr=1e-2,
+            batchsize=0, backend, device=:cpu,
+        )
+        m = NeuroTabModels.fit(learner, dtrain; target_name="y", feature_names, deval, group_name="grp")
+        metrics = m.info[:logger][:metrics][:metric]
+        @test all(isfinite, metrics)
+        @test first(metrics) ≈ 0 atol = 1e-5
+        @test m.info[:logger][:best_iter] > 0
+        @test maximum(metrics) > 0.8
+        @test !any(isnan, m(deval))
+    end
+
+    # One date with a flat target no longer turns the whole grouped metric NaN. It scores 0 and
+    # keeps its weight, so it scales the metric by a fixed factor and leaves best_iter unchanged.
+    deval_flat = copy(deval)
+    deval_flat[deval_flat.grp.==40, :y] .= 1.0f0
+    learner = NeuroTabRegressor(
+        NeuroTabModels.MLPConfig(; hidden_size=16, stack_size=1, dropout=0.0);
+        loss=:mse, metric=:pearson, nrounds=6, early_stopping_rounds=6, lr=1e-2,
+        batchsize=0, backend=:zygote, device=:cpu,
+    )
+    m = NeuroTabModels.fit(learner, dtrain; target_name="y", feature_names, deval=deval_flat, group_name="grp")
+    @test all(isfinite, m.info[:logger][:metrics][:metric])
 end
 
 @testset "Pearson fit with group_name / eval_group_name" begin
